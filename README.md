@@ -744,10 +744,12 @@ flowchart TB
 | Component | Technology | Port | Purpose |
 |-----------|------------|------|---------|
 | Event Streaming | Apache Kafka | 9092 | Real-time event ingestion |
-| Stream Processing | Apache Flink | 8081/8083 | Event processing & aggregation |
+| Stream Processing | Apache Flink + Spark | 8081/8083 | Event processing & aggregation |
 | Lakehouse | Apache Iceberg | - | ACID table format on S3 |
+| Stream Writer | PySpark Structured Streaming | via spark-iceberg | Kafka to Iceberg writes |
 | Object Storage | MinIO | 9000/9001 | S3-compatible storage |
-| Query Engine | Trino | 8080 | Distributed SQL queries |
+| REST Catalog | tabulario/iceberg-rest | 8181 | Iceberg metadata API |
+| Query Engine | Trino | 8082 | Distributed SQL queries |
 | Metadata Store | PostgreSQL | 5432 | Reference data |
 | API Server | GraphQL | 4000 | Data access layer |
 | Web UI | Next.js | 3000 | Business dashboards |
@@ -1023,9 +1025,13 @@ All services should show **running** status. Here's the expected status:
 | **Next.js UI** | http://localhost:3000 | - |
 | **GraphQL Playground** | http://localhost:4000/graphql | - |
 | **Kafka UI** | http://localhost:8080 | - |
+| **Flink Dashboard** | http://localhost:8087 | - |
 | **Grafana** | http://localhost:3030 | admin / admin123 |
-| **MinIO Console** | http://localhost:9001 | minioadmin / minioadmin123 |
-| **Trino** | http://localhost:8081 | - |
+| **MinIO Console** | http://localhost:9001 | admin / password |
+| **Trino** | http://localhost:8082 | - (dev mode) |
+| **Iceberg REST** | http://localhost:8181 | - |
+| **Spark Jupyter** | http://localhost:8889 | - |
+| **Spark History** | http://localhost:10002 | - |
 | **Prometheus** | http://localhost:9090 | - |
 | **OpenMetadata** | http://localhost:8585 | admin / admin123 |
 | **Elasticsearch** | http://localhost:9200 | - |
@@ -1046,10 +1052,19 @@ retail-streaming-platform/
 │   ├── config.py
 │   └── generate_events.py
 │
-├── flink-jobs/                  # Apache Flink streaming jobs
+├── flink-jobs/                  # Apache Flink Python streaming jobs
 │   ├── Dockerfile
 │   ├── requirements.txt
-│   └── retail_stream_processor.py
+│   ├── entrypoint.sh
+│   ├── flink_job.py
+│   └── wait_for_services.py
+│
+├── spark/                       # Spark-Iceberg streaming (PySpark)
+│   ├── jobs/
+│   │   ├── kafka_to_iceberg.py    # Main Kafka-to-Iceberg streaming job
+│   │   └── metastore_db/           # Derby HMS database
+│   └── aws/
+│       └── credentials                # AWS credentials for MinIO
 │
 ├── trino/                      # Trino query engine config
 │   └── catalog/
@@ -1146,25 +1161,52 @@ docker compose exec kafka kafka-consumer-groups \
 
 ---
 
-### Apache Flink
+### Apache Flink & Spark-Iceberg
 
-Stream processing engine for real-time analytics.
+Two stream processors are available:
+
+- **Apache Flink**: Real-time analytics and complex event processing (JobManager at http://localhost:8087)
+- **Spark-Iceberg**: PySpark Structured Streaming for Kafka-to-Iceberg writes (Jupyter at http://localhost:8889)
 
 ```bash
 # Flink Web UI
-open http://localhost:8083
+open http://localhost:8087
 
-# Submit a job (example)
+# Submit a Flink job (example)
 docker compose exec flink-jobmanager \
   bin/flink run \
   -py /opt/flink-jobs/retail_stream_processor.py
+
+# Access Spark Jupyter notebooks
+open http://localhost:8889
+
+# Submit PySpark streaming job
+docker compose exec spark-iceberg \
+  spark-submit --master spark://spark-iceberg:7077 \
+  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 \
+  /opt/spark/jobs/kafka_to_iceberg.py
 ```
 
 ---
 
+### Iceberg REST Catalog
+
+REST API for Iceberg metadata management (backed by tabulario/iceberg-rest).
+
+```bash
+# List namespaces
+curl http://localhost:8181/v1/namespaces
+
+# List tables
+curl http://localhost:8181/v1/namespaces/retail/tables
+
+# Table metadata
+curl http://localhost:8181/v1/namespaces/retail/tables/orders
+```
+
 ### Trino (Query Engine)
 
-SQL query engine for Iceberg and PostgreSQL.
+SQL query engine for Iceberg and PostgreSQL. Access at http://localhost:8082.
 
 ```bash
 # Open Trino CLI
@@ -1174,6 +1216,10 @@ docker compose exec trino trino
 SHOW CATALOGS;
 SHOW SCHEMAS IN iceberg;
 SHOW TABLES IN iceberg.retail;
+
+# Query real-time Iceberg data
+SELECT count(*) FROM iceberg.retail.orders;
+SELECT order_id, customer_id, total_amount FROM iceberg.retail.orders LIMIT 5;
 ```
 
 **Query Examples:**
