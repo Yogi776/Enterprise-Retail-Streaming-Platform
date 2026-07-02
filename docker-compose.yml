@@ -422,6 +422,26 @@ services:
       - retail-network
     restart: "no"
 
+  # Benchmark Tool
+  benchmark:
+    image: python:3.11-slim
+    container_name: benchmark
+    volumes:
+      - ./scripts:/scripts
+      - ./docs:/docs
+    environment:
+      PYTHONUNBUFFERED: "1"
+    command: >
+      bash -c "pip install trino -q && python /scripts/benchmark.py"
+    depends_on:
+      trino:
+        condition: service_started
+      kafka:
+        condition: service_started
+    networks:
+      - retail-network
+    restart: "no"
+
 volumes:
   minio-data:
   postgres-data:
