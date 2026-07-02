@@ -1,0 +1,19 @@
+{
+  "name": "retail-graphql-api",
+  "version": "1.0.0",
+  "description": "GraphQL API for Retail Streaming Platform",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "@apollo/server": "^4.10.0",
+    "graphql": "^16.8.1",
+    "graphql-request": "^6.1.0",
+    "trino-client": "^0.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

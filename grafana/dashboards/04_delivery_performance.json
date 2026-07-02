@@ -1,0 +1,111 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "Total Deliveries Today",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "targets": [
+        {
+          "sql": "SELECT COUNT(*) FROM iceberg.retail.delivery WHERE DATE(created_at) = CURRENT_DATE",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "On-Time Rate",
+      "type": "gauge",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 90},
+              {"color": "green", "value": 95}
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "sql": "SELECT COUNT(*) FILTER (WHERE delivery_status='delivered' AND actual_delivery_date <= estimated_delivery_date) * 100.0 / NULLIF(COUNT(*) FILTER (WHERE delivery_status='delivered'), 0) FROM iceberg.retail.delivery WHERE DATE(created_at) = CURRENT_DATE",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Avg Delivery Time (hrs)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "targets": [
+        {
+          "sql": "SELECT AVG(actual_delivery_date - order_timestamp) FILTER (WHERE delivery_status='delivered') * 24 FROM iceberg.retail.delivery WHERE DATE(created_at) = CURRENT_DATE",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Delayed",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "targets": [
+        {
+          "sql": "SELECT COUNT(*) FILTER (WHERE is_delayed=true) FROM iceberg.retail.delivery WHERE DATE(created_at) = CURRENT_DATE",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "On-Time vs Delayed",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 4},
+      "targets": [
+        {
+          "sql": "SELECT CASE WHEN is_delayed THEN 'Delayed' ELSE 'On Time' END AS status, COUNT(*) AS count FROM iceberg.retail.delivery WHERE DATE(created_at) = CURRENT_DATE GROUP BY status",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Performance by Carrier",
+      "type": "barchart",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 4},
+      "targets": [
+        {
+          "sql": "SELECT carrier, COUNT(*) FILTER (WHERE is_delayed=false AND delivery_status='delivered') * 100.0 / NULLIF(COUNT(*) FILTER (WHERE delivery_status='delivered'), 0) AS on_time_rate FROM iceberg.retail.delivery WHERE DATE(created_at) >= CURRENT_DATE - INTERVAL '7' DAY GROUP BY carrier ORDER BY on_time_rate",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Delay Reasons",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 4},
+      "targets": [
+        {
+          "sql": "SELECT delay_reason, COUNT(*) AS count FROM iceberg.retail.delivery WHERE DATE(created_at) = CURRENT_DATE AND is_delayed=true GROUP BY delay_reason",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["delivery", "operations", "retail"],
+  "templating": {"list": []},
+  "time": {"from": "now-7d", "to": "now"},
+  "timezone": "browser",
+  "title": "Delivery Performance",
+  "uid": "delivery-performance",
+  "version": 1
+}

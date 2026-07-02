@@ -1,0 +1,127 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "Total Transactions",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "targets": [
+        {
+          "sql": "SELECT COUNT(*) FROM iceberg.retail.payments WHERE DATE(payment_timestamp) = CURRENT_DATE",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Success Rate",
+      "type": "gauge",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 90},
+              {"color": "green", "value": 95}
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "sql": "SELECT COUNT(*) FILTER (WHERE payment_status='completed') * 100.0 / COUNT(*) FROM iceberg.retail.payments WHERE DATE(payment_timestamp) = CURRENT_DATE",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Failed Transactions",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 50}
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "sql": "SELECT COUNT(*) FILTER (WHERE payment_status='failed') FROM iceberg.retail.payments WHERE DATE(payment_timestamp) = CURRENT_DATE",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Avg Latency (ms)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "targets": [
+        {
+          "sql": "SELECT AVG(latency_ms) FROM iceberg.retail.payments WHERE DATE(payment_timestamp) = CURRENT_DATE AND latency_ms IS NOT NULL",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Success vs Failure Rate (24h)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"lineWidth": 2, "fillOpacity": 10}
+        }
+      },
+      "targets": [
+        {
+          "sql": "SELECT DATE_TRUNC('hour', payment_timestamp) AS hour, COUNT(*) FILTER (WHERE payment_status='completed') AS successful, COUNT(*) FILTER (WHERE payment_status='failed') AS failed FROM iceberg.retail.payments WHERE payment_timestamp >= NOW() - INTERVAL '24' HOUR GROUP BY hour ORDER BY hour",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Failure Reasons",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 4},
+      "targets": [
+        {
+          "sql": "SELECT failure_reason, COUNT(*) AS count FROM iceberg.retail.payments WHERE DATE(payment_timestamp) = CURRENT_DATE AND payment_status='failed' GROUP BY failure_reason",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Payment Method Performance",
+      "type": "barchart",
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 4},
+      "targets": [
+        {
+          "sql": "SELECT payment_method, COUNT(*) FILTER (WHERE payment_status='completed') * 100.0 / COUNT(*) AS success_rate FROM iceberg.retail.payments WHERE DATE(payment_timestamp) = CURRENT_DATE GROUP BY payment_method",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["payments", "health", "retail"],
+  "templating": {"list": []},
+  "time": {"from": "now-24h", "to": "now"},
+  "timezone": "browser",
+  "title": "Payment Health",
+  "uid": "payment-health",
+  "version": 1
+}

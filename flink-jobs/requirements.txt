@@ -1,0 +1,6 @@
+# Flink Jobs for Retail Streaming Platform
+apache-flink>=1.17.1
+kafka-python>=2.0.2
+pandas>=2.1.4
+pydantic>=2.5.2
+python-dateutil>=2.8.2

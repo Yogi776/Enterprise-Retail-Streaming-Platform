@@ -1,0 +1,134 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "Total SKUs",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "targets": [
+        {
+          "sql": "SELECT COUNT(DISTINCT product_id) FROM iceberg.retail.inventory_snapshot",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "In-Stock Rate",
+      "type": "gauge",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 85},
+              {"color": "green", "value": 95}
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "sql": "SELECT COUNT(*) FILTER (WHERE quantity_on_hand > reorder_point) * 100.0 / COUNT(*) FROM iceberg.retail.inventory_snapshot",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Low Stock Count",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 20},
+              {"color": "red", "value": 50}
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "sql": "SELECT COUNT(*) FROM iceberg.retail.inventory_snapshot WHERE quantity_on_hand < reorder_point AND quantity_on_hand > 0",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Out-of-Stock",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 1}
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "sql": "SELECT COUNT(*) FROM iceberg.retail.inventory_snapshot WHERE quantity_on_hand = 0",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Stock Status Distribution",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 4},
+      "targets": [
+        {
+          "sql": "SELECT CASE WHEN quantity_on_hand = 0 THEN 'Out of Stock' WHEN quantity_on_hand < reorder_point THEN 'Low Stock' ELSE 'In Stock' END AS status, COUNT(*) AS count FROM iceberg.retail.inventory_snapshot GROUP BY status",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Stockout Events (7 days)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 4},
+      "targets": [
+        {
+          "sql": "SELECT DATE(event_timestamp) AS day, COUNT(*) AS stockout_count FROM iceberg.retail.inventory_events WHERE event_type='inventory_stockout' AND event_timestamp >= NOW() - INTERVAL '7' DAY GROUP BY day ORDER BY day",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Low Stock by Category",
+      "type": "barchart",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 4},
+      "targets": [
+        {
+          "sql": "SELECT category, COUNT(*) AS low_stock_count FROM iceberg.retail.inventory_snapshot WHERE quantity_on_hand < reorder_point GROUP BY category ORDER BY low_stock_count DESC",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["inventory", "operations", "retail"],
+  "templating": {"list": []},
+  "time": {"from": "now-7d", "to": "now"},
+  "timezone": "browser",
+  "title": "Inventory Control Tower",
+  "uid": "inventory-control-tower",
+  "version": 1
+}

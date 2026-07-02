@@ -1,0 +1,171 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "Live Revenue",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "green", "value": 100}
+            ]
+          },
+          "unit": "currencyUSD",
+          "decimals": 0
+        }
+      },
+      "targets": [
+        {
+          "sql": "SELECT SUM(total_amount) FROM iceberg.retail.orders WHERE DATE(order_timestamp) = CURRENT_DATE",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Orders Today",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "targets": [
+        {
+          "sql": "SELECT COUNT(*) FROM iceberg.retail.orders WHERE DATE(order_timestamp) = CURRENT_DATE",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Payment Success Rate",
+      "type": "gauge",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 90},
+              {"color": "green", "value": 95}
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "sql": "SELECT COUNT(*) FILTER (WHERE payment_status='completed') * 100.0 / COUNT(*) FROM iceberg.retail.payments WHERE DATE(payment_timestamp) = CURRENT_DATE",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Active Fraud Alerts",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 10},
+              {"color": "red", "value": 25}
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "sql": "SELECT COUNT(*) FROM iceberg.retail.fraud_signals WHERE fraud_timestamp >= NOW() - INTERVAL '24' HOUR AND fraud_score >= 0.5",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Revenue Trend (24h)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 16, "x": 0, "y": 4},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20
+          },
+          "unit": "currencyUSD"
+        }
+      },
+      "targets": [
+        {
+          "sql": "SELECT DATE_TRUNC('hour', order_timestamp) AS hour, SUM(total_amount) AS revenue FROM iceberg.retail.orders WHERE order_timestamp >= NOW() - INTERVAL '24' HOUR GROUP BY hour ORDER BY hour",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Order Status Distribution",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 4},
+      "targets": [
+        {
+          "sql": "SELECT status, COUNT(*) AS count FROM iceberg.retail.orders WHERE DATE(order_timestamp) = CURRENT_DATE GROUP BY status",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Revenue by Channel",
+      "type": "barchart",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "targets": [
+        {
+          "sql": "SELECT channel, SUM(total_amount) AS revenue FROM iceberg.retail.orders WHERE DATE(order_timestamp) = CURRENT_DATE GROUP BY channel ORDER BY revenue DESC",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Top 5 Categories by Revenue",
+      "type": "barchart",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "targets": [
+        {
+          "sql": "WITH order_items AS (SELECT oi.category, SUM(oi.unit_price * oi.quantity - oi.discount) AS revenue FROM iceberg.retail.orders, UNNEST(order_items) AS t(oi) WHERE order_timestamp >= NOW() - INTERVAL '24' HOUR GROUP BY oi.category) SELECT category, revenue FROM order_items ORDER BY revenue DESC LIMIT 5",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["executive", "retail", "overview"],
+  "templating": {
+    "list": [
+      {
+        "name": "dateRange",
+        "type": "date_range",
+        "datasource": {"type": "trino", "uid": "trino"}
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "Executive Overview",
+  "uid": "executive-overview",
+  "version": 1
+}

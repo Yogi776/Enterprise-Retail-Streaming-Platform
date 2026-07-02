@@ -1,0 +1,126 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "Fraud Alerts (24h)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 10},
+              {"color": "red", "value": 25}
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "sql": "SELECT COUNT(*) FROM iceberg.retail.fraud_signals WHERE fraud_timestamp >= NOW() - INTERVAL '24' HOUR",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Blocked Amount",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "fieldConfig": {
+        "defaults": {"unit": "currencyUSD"}
+      },
+      "targets": [
+        {
+          "sql": "SELECT SUM(p.amount) FROM iceberg.retail.payments p JOIN iceberg.retail.fraud_signals f ON p.order_id = f.order_id WHERE f.fraud_timestamp >= NOW() - INTERVAL '24' HOUR AND f.action_taken='block'",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Fraud Rate",
+      "type": "gauge",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 2},
+              {"color": "red", "value": 5}
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "sql": "SELECT COUNT(DISTINCT f.order_id) FILTER (WHERE f.fraud_timestamp >= NOW() - INTERVAL '24' HOUR) * 100.0 / NULLIF(COUNT(DISTINCT o.order_id) FILTER (WHERE o.order_timestamp >= NOW() - INTERVAL '24' HOUR), 0) FROM iceberg.retail.orders o LEFT JOIN iceberg.retail.fraud_signals f ON o.order_id = f.order_id",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Avg Fraud Score",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "targets": [
+        {
+          "sql": "SELECT AVG(fraud_score) FROM iceberg.retail.fraud_signals WHERE fraud_timestamp >= NOW() - INTERVAL '24' HOUR",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Fraud Alerts by Hour",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "targets": [
+        {
+          "sql": "SELECT DATE_TRUNC('hour', fraud_timestamp) AS hour, COUNT(*) FILTER (WHERE fraud_score >= 0.8) AS high, COUNT(*) FILTER (WHERE fraud_score >= 0.5 AND fraud_score < 0.8) AS medium, COUNT(*) FILTER (WHERE fraud_score < 0.5) AS low FROM iceberg.retail.fraud_signals WHERE fraud_timestamp >= NOW() - INTERVAL '48' HOUR GROUP BY hour ORDER BY hour",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Fraud by Type",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 4},
+      "targets": [
+        {
+          "sql": "SELECT fraud_type, COUNT(*) AS count FROM iceberg.retail.fraud_signals WHERE fraud_timestamp >= NOW() - INTERVAL '7' DAY GROUP BY fraud_type ORDER BY count DESC",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    },
+    {
+      "title": "Fraud Score Distribution",
+      "type": "histogram",
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 4},
+      "targets": [
+        {
+          "sql": "SELECT WIDTH_BUCKET(fraud_score, 0, 1, 10) AS bucket, COUNT(*) FROM iceberg.retail.fraud_signals WHERE fraud_timestamp >= NOW() - INTERVAL '24' HOUR GROUP BY bucket ORDER BY bucket",
+          "datasource": {"type": "trino", "uid": "trino"}
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["fraud", "risk", "retail"],
+  "templating": {"list": []},
+  "time": {"from": "now-24h", "to": "now"},
+  "timezone": "browser",
+  "title": "Fraud Monitoring",
+  "uid": "fraud-monitoring",
+  "version": 1
+}

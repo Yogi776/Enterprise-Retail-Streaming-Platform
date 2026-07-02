@@ -62,52 +62,52 @@ This platform transforms retail operations from **reactive** to **proactive** wi
 
 ```mermaid
 flowchart TB
-    subgraph Sources["DATA SOURCES"]
-        POS["POS System<br/><small>Point of Sale</small>"]
-        WEB["E-commerce<br/><small>Online Store</small>"]
-        MOB["Mobile App<br/><small>iOS/Android</small>"]
-        IOT["IoT Devices<br/><small>Smart Shelf Sensors</small>"]
+    subgraph Sources["📥 DATA SOURCES"]
+        POS["🏪 POS System<br/><small>Point of Sale</small>"]
+        WEB["🌐 E-commerce<br/><small>Online Store</small>"]
+        MOB["📱 Mobile App<br/><small>iOS/Android</small>"]
+        IOT["📡 IoT Devices<br/><small>Smart Shelf Sensors</small>"]
     end
 
-    subgraph Ingestion["STREAM INGESTION"]
-        KAFKA["Apache Kafka<br/><small>Message Broker :9092</small>"]
-        KAFKA_UI["Kafka UI<br/><small>Monitoring :8080</small>"]
+    subgraph Ingestion["⚡ STREAM INGESTION"]
+        KAFKA["� Apache Kafka<br/><small>Message Broker :9092</small>"]
+        KAFKA_UI["📊 Kafka UI<br/><small>Monitoring :8080</small>"]
     end
 
-    subgraph Processing["STREAM PROCESSING"]
-        FLINK["Apache Flink<br/><small>Real-time Analytics</small>"]
-        FLINK_UI["Flink Dashboard<br/><small>Job Manager :8083</small>"]
+    subgraph Processing["🔄 STREAM PROCESSING"]
+        FLINK["🔥 Apache Flink<br/><small>Real-time Analytics</small>"]
+        FLINK_UI["🔍 Flink Dashboard<br/><small>Job Manager :8083</small>"]
     end
 
-    subgraph Storage["STORAGE LAYER"]
-        subgraph Lakehouse["Lakehouse"]
-            MINIO["MinIO<br/><small>S3 Store :9000</small>"]
-            ICEBERG["Apache Iceberg<br/><small>Table Format</small>"]
+    subgraph Storage["💾 STORAGE LAYER"]
+        subgraph Lakehouse["🏠 Lakehouse"]
+            MINIO["🪣 MinIO<br/><small>S3 Store :9000</small>"]
+            ICEBERG["📋 Apache Iceberg<br/><small>Table Format</small>"]
         end
-        PG["PostgreSQL<br/><small>Reference Data :5432</small>"]
+        PG["🐘 PostgreSQL<br/><small>Reference Data :5432</small>"]
     end
 
-    subgraph Query["QUERY LAYER"]
-        TRINO["Trino<br/><small>SQL Engine :8080</small>"]
+    subgraph Query["🔍 QUERY LAYER"]
+        TRINO["⚡ Trino<br/><small>SQL Engine :8080</small>"]
     end
 
-    subgraph Serving["API LAYER"]
-        GQL["GraphQL API<br/><small>Data Gateway :4000</small>"]
+    subgraph Serving["🌐 API LAYER"]
+        GQL["🔷 GraphQL API<br/><small>Data Gateway :4000</small>"]
     end
 
-    subgraph UI["USER INTERFACE"]
-        NEXT["Next.js<br/><small>Dashboards :3000</small>"]
-        GRAFANA["Grafana<br/><small>Monitoring :3030</small>"]
+    subgraph UI["📊 USER INTERFACE"]
+        NEXT["⚛️ Next.js<br/><small>Dashboards :3000</small>"]
+        GRAFANA["📈 Grafana<br/><small>Monitoring :3030</small>"]
     end
 
-    subgraph Governance["GOVERNANCE"]
-        OM["OpenMetadata<br/><small>Catalog :8585</small>"]
-        ELK["Elasticsearch<br/><small>Search :9200</small>"]
-        MYSQL["MySQL<br/><small>Metadata :3306</small>"]
+    subgraph Governance["🔐 GOVERNANCE"]
+        OM["📚 OpenMetadata<br/><small>Catalog :8585</small>"]
+        ELK["🔎 Elasticsearch<br/><small>Search :9200</small>"]
+        MYSQL["🗄️ MySQL<br/><small>Metadata :3306</small>"]
     end
 
-    subgraph Observability["OBSERVABILITY"]
-        PROM["Prometheus<br/><small>Metrics :9090</small>"]
+    subgraph Observability["📡 OBSERVABILITY"]
+        PROM["📉 Prometheus<br/><small>Metrics :9090</small>"]
     end
 
     %% Data Flow
@@ -157,18 +157,17 @@ sequenceDiagram
     autonumber
     Title: Enterprise Retail Streaming Platform - Complete Data Flow
 
-    participant DG as Data Generator<br/>Python
-    participant KAFKA as Kafka<br/>Message Broker
-    participant FLINK as Flink<br/>Stream Processor
-    participant SPARK as Spark-Iceberg<br/>PySpark Streaming
-    participant MINIO as MinIO<br/>S3 Storage
-    participant PG as PostgreSQL<br/>Reference Data
-    participant TRINO as Trino<br/>Query Engine
-    participant GQL as GraphQL<br/>API Gateway
-    participant UI as Next.js<br/>Dashboards
-    participant GRAFANA as Grafana<br/>Monitoring
-    participant PROM as Prometheus<br/>Metrics
-    participant OM as OpenMetadata<br/>Catalog
+    participant DG as 📦 Data Generator<br/>Python
+    participant KAFKA as 🏹 Kafka<br/>Message Broker
+    participant FLINK as 🔥 Flink<br/>Stream Processor
+    participant MINIO as 🪣 MinIO<br/>S3 Storage
+    participant PG as 🐘 PostgreSQL<br/>Reference Data
+    participant TRINO as ⚡ Trino<br/>Query Engine
+    participant GQL as 🔷 GraphQL<br/>API Gateway
+    participant UI as ⚛️ Next.js<br/>Dashboards
+    participant GRAFANA as 📈 Grafana<br/>Monitoring
+    participant PROM as 📉 Prometheus<br/>Metrics
+    participant OM as 📚 OpenMetadata<br/>Catalog
 
     rect rgb(220, 240, 255)
         Note over DG,KAFKA: STAGE 1: DATA GENERATION
@@ -437,11 +436,11 @@ flowchart TB
 ```mermaid
 sequenceDiagram
     autonumber
-    participant UI as Next.js
-    participant GQL as GraphQL API
-    participant CACHE as messageCache<br/>In-Memory
-    participant KAFKA as Kafka
-    participant TRINO as Trino
+    participant UI as ⚛️ Next.js
+    participant GQL as 🔷 GraphQL API
+    participant CACHE as 📦 messageCache<br/>In-Memory
+    participant KAFKA as 🏹 Kafka
+    participant TRINO as ⚡ Trino
 
     rect rgb(230, 245, 255)
         Note over KAFKA,GQL: KAFKA CONSUMER (Background)
@@ -744,12 +743,10 @@ flowchart TB
 | Component | Technology | Port | Purpose |
 |-----------|------------|------|---------|
 | Event Streaming | Apache Kafka | 9092 | Real-time event ingestion |
-| Stream Processing | Apache Flink + Spark | 8081/8083 | Event processing & aggregation |
+| Stream Processing | Apache Flink | 8081/8083 | Event processing & aggregation |
 | Lakehouse | Apache Iceberg | - | ACID table format on S3 |
-| Stream Writer | PySpark Structured Streaming | via spark-iceberg | Kafka to Iceberg writes |
 | Object Storage | MinIO | 9000/9001 | S3-compatible storage |
-| REST Catalog | tabulario/iceberg-rest | 8181 | Iceberg metadata API |
-| Query Engine | Trino | 8082 | Distributed SQL queries |
+| Query Engine | Trino | 8080 | Distributed SQL queries |
 | Metadata Store | PostgreSQL | 5432 | Reference data |
 | API Server | GraphQL | 4000 | Data access layer |
 | Web UI | Next.js | 3000 | Business dashboards |
@@ -1025,13 +1022,9 @@ All services should show **running** status. Here's the expected status:
 | **Next.js UI** | http://localhost:3000 | - |
 | **GraphQL Playground** | http://localhost:4000/graphql | - |
 | **Kafka UI** | http://localhost:8080 | - |
-| **Flink Dashboard** | http://localhost:8087 | - |
 | **Grafana** | http://localhost:3030 | admin / admin123 |
-| **MinIO Console** | http://localhost:9001 | admin / password |
-| **Trino** | http://localhost:8082 | - (dev mode) |
-| **Iceberg REST** | http://localhost:8181 | - |
-| **Spark Jupyter** | http://localhost:8889 | - |
-| **Spark History** | http://localhost:10002 | - |
+| **MinIO Console** | http://localhost:9001 | minioadmin / minioadmin123 |
+| **Trino** | http://localhost:8081 | - |
 | **Prometheus** | http://localhost:9090 | - |
 | **OpenMetadata** | http://localhost:8585 | admin / admin123 |
 | **Elasticsearch** | http://localhost:9200 | - |
@@ -1052,19 +1045,10 @@ retail-streaming-platform/
 │   ├── config.py
 │   └── generate_events.py
 │
-├── flink-jobs/                  # Apache Flink Python streaming jobs
+├── flink-jobs/                  # Apache Flink streaming jobs
 │   ├── Dockerfile
 │   ├── requirements.txt
-│   ├── entrypoint.sh
-│   ├── flink_job.py
-│   └── wait_for_services.py
-│
-├── spark/                       # Spark-Iceberg streaming (PySpark)
-│   ├── jobs/
-│   │   ├── kafka_to_iceberg.py    # Main Kafka-to-Iceberg streaming job
-│   │   └── metastore_db/           # Derby HMS database
-│   └── aws/
-│       └── credentials                # AWS credentials for MinIO
+│   └── retail_stream_processor.py
 │
 ├── trino/                      # Trino query engine config
 │   └── catalog/
@@ -1161,52 +1145,25 @@ docker compose exec kafka kafka-consumer-groups \
 
 ---
 
-### Apache Flink & Spark-Iceberg
+### Apache Flink
 
-Two stream processors are available:
-
-- **Apache Flink**: Real-time analytics and complex event processing (JobManager at http://localhost:8087)
-- **Spark-Iceberg**: PySpark Structured Streaming for Kafka-to-Iceberg writes (Jupyter at http://localhost:8889)
+Stream processing engine for real-time analytics.
 
 ```bash
 # Flink Web UI
-open http://localhost:8087
+open http://localhost:8083
 
-# Submit a Flink job (example)
+# Submit a job (example)
 docker compose exec flink-jobmanager \
   bin/flink run \
   -py /opt/flink-jobs/retail_stream_processor.py
-
-# Access Spark Jupyter notebooks
-open http://localhost:8889
-
-# Submit PySpark streaming job
-docker compose exec spark-iceberg \
-  spark-submit --master spark://spark-iceberg:7077 \
-  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 \
-  /opt/spark/jobs/kafka_to_iceberg.py
 ```
 
 ---
 
-### Iceberg REST Catalog
-
-REST API for Iceberg metadata management (backed by tabulario/iceberg-rest).
-
-```bash
-# List namespaces
-curl http://localhost:8181/v1/namespaces
-
-# List tables
-curl http://localhost:8181/v1/namespaces/retail/tables
-
-# Table metadata
-curl http://localhost:8181/v1/namespaces/retail/tables/orders
-```
-
 ### Trino (Query Engine)
 
-SQL query engine for Iceberg and PostgreSQL. Access at http://localhost:8082.
+SQL query engine for Iceberg and PostgreSQL.
 
 ```bash
 # Open Trino CLI
@@ -1216,10 +1173,6 @@ docker compose exec trino trino
 SHOW CATALOGS;
 SHOW SCHEMAS IN iceberg;
 SHOW TABLES IN iceberg.retail;
-
-# Query real-time Iceberg data
-SELECT count(*) FROM iceberg.retail.orders;
-SELECT order_id, customer_id, total_amount FROM iceberg.retail.orders LIMIT 5;
 ```
 
 **Query Examples:**
