@@ -1,0 +1,52 @@
+cubes:
+- name: customers
+  sql: >
+    SELECT
+      event_id,
+      customer_id,
+      event_timestamp,
+      email,
+      name,
+      loyalty_tier,
+      lifetime_value,
+      total_orders,
+      country
+    FROM iceberg.retail.customer_profile
+  dimensions:
+    - name: event_id
+      sql: event_id
+      type: string
+      primary_key: true
+    - name: customer_id
+      sql: customer_id
+      type: string
+    - name: event_timestamp
+      sql: event_timestamp
+      type: time
+    - name: email
+      sql: email
+      type: string
+    - name: name
+      sql: name
+      type: string
+    - name: loyalty_tier
+      sql: loyalty_tier
+      type: string
+    - name: country
+      sql: country
+      type: string
+  measures:
+    - name: customer_count
+      type: count
+    - name: lifetime_value
+      sql: lifetime_value
+      type: sum
+    - name: avg_lifetime_value
+      sql: lifetime_value
+      type: avg
+    - name: total_orders
+      sql: total_orders
+      type: sum
+    - name: avg_orders
+      sql: total_orders
+      type: avg

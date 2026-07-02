@@ -1,0 +1,45 @@
+cubes:
+- name: inventory
+  sql: >
+    SELECT
+      event_id,
+      product_id,
+      event_timestamp,
+      product_name,
+      store_id,
+      quantity_on_hand,
+      reorder_level
+    FROM iceberg.retail.inventory
+  dimensions:
+    - name: event_id
+      sql: event_id
+      type: string
+      primary_key: true
+    - name: product_id
+      sql: product_id
+      type: string
+    - name: event_timestamp
+      sql: event_timestamp
+      type: time
+    - name: product_name
+      sql: product_name
+      type: string
+    - name: store_id
+      sql: store_id
+      type: string
+    - name: reorder_level
+      sql: reorder_level
+      type: number
+  measures:
+    - name: inventory_count
+      type: count
+    - name: total_quantity
+      sql: quantity_on_hand
+      type: sum
+    - name: avg_quantity
+      sql: quantity_on_hand
+      type: avg
+    - name: low_stock_count
+      sql: >-
+        CASE WHEN quantity_on_hand <= reorder_level THEN 1 ELSE 0 END
+      type: sum

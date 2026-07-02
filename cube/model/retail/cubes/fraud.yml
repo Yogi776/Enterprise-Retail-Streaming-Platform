@@ -1,0 +1,37 @@
+cubes:
+- name: fraud_signals
+  sql: >
+    SELECT
+      event_id,
+      order_id,
+      customer_id,
+      event_timestamp,
+      fraud_score
+    FROM iceberg.retail.fraud_signals
+  dimensions:
+    - name: event_id
+      sql: event_id
+      type: string
+      primary_key: true
+    - name: order_id
+      sql: order_id
+      type: string
+    - name: customer_id
+      sql: customer_id
+      type: string
+    - name: event_timestamp
+      sql: event_timestamp
+      type: time
+    - name: fraud_score
+      sql: fraud_score
+      type: number
+  measures:
+    - name: fraud_signal_count
+      type: count
+    - name: avg_fraud_score
+      sql: fraud_score
+      type: avg
+    - name: high_risk_count
+      sql: >-
+        CASE WHEN fraud_score > 0.7 THEN 1 ELSE 0 END
+      type: sum

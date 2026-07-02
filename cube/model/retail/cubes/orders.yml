@@ -1,0 +1,57 @@
+cubes:
+- name: orders
+  sql: >
+    SELECT
+      event_id,
+      order_id,
+      customer_id,
+      event_timestamp,
+      total_amount,
+      currency,
+      payment_method,
+      status,
+      store_id,
+      country,
+      channel
+    FROM iceberg.retail.orders
+  dimensions:
+    - name: event_id
+      sql: event_id
+      type: string
+      primary_key: true
+    - name: order_id
+      sql: order_id
+      type: string
+    - name: customer_id
+      sql: customer_id
+      type: string
+    - name: event_timestamp
+      sql: event_timestamp
+      type: time
+    - name: currency
+      sql: currency
+      type: string
+    - name: payment_method
+      sql: payment_method
+      type: string
+    - name: status
+      sql: status
+      type: string
+    - name: store_id
+      sql: store_id
+      type: string
+    - name: country
+      sql: country
+      type: string
+    - name: channel
+      sql: channel
+      type: string
+  measures:
+    - name: total_amount
+      sql: total_amount
+      type: sum
+    - name: order_count
+      type: count
+    - name: avg_order_value
+      sql: total_amount
+      type: avg

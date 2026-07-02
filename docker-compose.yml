@@ -442,11 +442,60 @@ services:
       - retail-network
     restart: "no"
 
+  # Cube.js Semantic Layer
+  cube:
+    image: cubejs/cube:latest
+    platform: linux/amd64
+    container_name: cube
+    ports:
+      - "4000:4000"
+      - "15432:15432"
+    environment:
+      CUBEJS_DEV_MODE: "true"
+      CUBEJS_API_SECRET: cube-api-secret-change-in-production
+      CUBEJS_DB_TYPE: trino
+      CUBEJS_DB_HOST: trino
+      CUBEJS_DB_PORT: "8080"
+      CUBEJS_DB_USER: admin
+      CUBEJS_DB_CATALOG: iceberg
+      CUBEJS_DB_SCHEMA: retail
+      CUBEJS_DB_SSL: "false"
+      CUBEJS_CUBESTORE_HOST: cubestore
+      CUBEJS_CUBESTORE_PORT: "1337"
+      CUBEJS_CONCURRENCY: "8"
+      CUBEJS_PRE_AGGREGATIONS_SCHEMA: pre_aggregations
+    volumes:
+      - ./cube/model:/cube/conf/model:ro
+      - ./cube.js:/cube/conf/cube.js:ro
+    depends_on:
+      trino:
+        condition: service_started
+      cubestore:
+        condition: service_started
+    networks:
+      - retail-network
+    restart: unless-stopped
+
+  cubestore:
+    image: cubejs/cubestore:latest
+    platform: linux/amd64
+    container_name: cubestore
+    ports:
+      - "1337:1337"
+    environment:
+      CUBEJS_CUBESTORE_PORT: "1337"
+    volumes:
+      - cubestore-data:/cube/data
+    networks:
+      - retail-network
+    restart: unless-stopped
+
 volumes:
   minio-data:
   postgres-data:
   grafana-data:
   prometheus-data:
+  cubestore-data:
 
 networks:
   retail-network:

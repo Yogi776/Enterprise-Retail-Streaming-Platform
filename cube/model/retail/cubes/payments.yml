@@ -1,0 +1,52 @@
+cubes:
+- name: payments
+  sql: >
+    SELECT
+      event_id,
+      payment_id,
+      order_id,
+      customer_id,
+      event_timestamp,
+      amount,
+      currency,
+      payment_status,
+      fraud_score
+    FROM iceberg.retail.payments
+  dimensions:
+    - name: event_id
+      sql: event_id
+      type: string
+      primary_key: true
+    - name: payment_id
+      sql: payment_id
+      type: string
+    - name: order_id
+      sql: order_id
+      type: string
+    - name: customer_id
+      sql: customer_id
+      type: string
+    - name: event_timestamp
+      sql: event_timestamp
+      type: time
+    - name: currency
+      sql: currency
+      type: string
+    - name: payment_status
+      sql: payment_status
+      type: string
+    - name: fraud_score
+      sql: fraud_score
+      type: number
+  measures:
+    - name: amount
+      sql: amount
+      type: sum
+    - name: payment_count
+      type: count
+    - name: avg_amount
+      sql: amount
+      type: avg
+    - name: avg_fraud_score
+      sql: fraud_score
+      type: avg
