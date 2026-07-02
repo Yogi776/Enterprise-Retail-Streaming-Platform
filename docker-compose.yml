@@ -19,13 +19,14 @@ services:
     hostname: kafka
     container_name: kafka
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"
       - "9101:9101"
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -36,6 +37,39 @@ services:
       KAFKA_JMX_HOSTNAME: localhost
     networks:
       - retail-network
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - retail-network
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "
+      # Wait for Kafka to be ready
+      echo 'Waiting for Kafka to be ready...'
+      sleep 10
+
+      # Create topics
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --replication-factor 1 --partitions 3 --topic retail.orders
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --replication-factor 1 --partitions 3 --topic retail.payments
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --replication-factor 1 --partitions 3 --topic retail.inventory
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --replication-factor 1 --partitions 3 --topic retail.delivery
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --replication-factor 1 --partitions 3 --topic retail.fraud_signals
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --replication-factor 1 --partitions 3 --topic retail.customer_profile
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --replication-factor 1 --partitions 3 --topic retail.recommendations
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --replication-factor 1 --partitions 3 --topic retail.customer_behavior
+
+      echo 'Topics created!'
+      "
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -43,7 +77,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
@@ -51,70 +86,155 @@ services:
     networks:
       - retail-network
 
-  # Apache Flink
+  # Python Data Generator
+  python-data-generator:
+    build:
+      context: ./data-generator
+      dockerfile: Dockerfile
+    container_name: python-data-generator
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    networks:
+      - retail-network
+
+  # Apache Flink (Job Manager + Task Manager)
   jobmanager:
     image: flink:1.17.1
     container_name: flink-jobmanager
     ports:
-      - "8083:8081"
+      - "8087:8081"
     command: jobmanager
     environment:
-      - |
-        FLINK_PROPERTIES=
+      FLINK_PROPERTIES: |
         jobmanager.rpc.address: jobmanager
         state.backend: rocksdb
+        state.checkpoints.dir: s3a://warehouse/flink-checkpoints
+        state.savepoints.dir: s3a://warehouse/flink-savepoints
     networks:
       - retail-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/taskmanagers || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   taskmanager:
     image: flink:1.17.1
     container_name: flink-taskmanager
     depends_on:
-      - jobmanager
+      jobmanager:
+        condition: service_healthy
     command: taskmanager
-    scale: 1
     environment:
-      - |
-        FLINK_PROPERTIES=
+      FLINK_PROPERTIES: |
         jobmanager.rpc.address: jobmanager
         taskmanager.numberOfTaskSlots: 2
         state.backend: rocksdb
     networks:
       - retail-network
 
+  # Flink Python Stream Processor
+  flink-jobs:
+    build:
+      context: ./flink-jobs
+      dockerfile: Dockerfile
+    container_name: flink-jobs
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      ICEBERG_REST_URL: http://iceberg-rest:8181
+      WAREHOUSE: s3a://warehouse/
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: admin
+      S3_SECRET_KEY: password
+    networks:
+      - retail-network
+    restart: unless-stopped
+
+  # Apache Spark with Iceberg (handles Kafka -> Iceberg streaming)
+  spark-iceberg:
+    image: tabulario/spark-iceberg:latest
+    hostname: spark-iceberg
+    container_name: spark-iceberg
+    ports:
+      - "8889:8888"
+      - "8083:8080"
+      - "10002:10000"
+      - "10003:10001"
+    environment:
+      AWS_ACCESS_KEY_ID: admin
+      AWS_SECRET_ACCESS_KEY: password
+      AWS_REGION: us-east-1
+      AWS_DEFAULT_REGION: us-east-1
+      S3_ENDPOINT: http://minio:9000
+    volumes:
+      - ./spark/jobs:/opt/spark/jobs
+      - ./spark/aws:/opt/spark/aws:ro
+    extra_hosts:
+      - "warehouse.minio:host-gateway"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - retail-network
+
   # MinIO (S3 Compatible)
   minio:
     image: minio/minio:latest
+    hostname: minio
     container_name: minio
     ports:
       - "9000:9000"
       - "9001:9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin123
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
     command: server /data --console-address ":9001"
     volumes:
       - minio-data:/data
     networks:
       - retail-network
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Apache Iceberg REST Catalog
+  # Apache Iceberg REST Catalog (Tabulario - for Trino and Spark)
   iceberg-rest:
-    image: tabulario/iceberg-rest:0.2.0
+    image: tabulario/iceberg-rest:1.6.0
+    hostname: iceberg-rest
     container_name: iceberg-rest
     ports:
       - "8181:8181"
     environment:
-      CATALOG_WAREHOUSE: s3a://warehouse/
+      CATALOG_WAREHOUSE: s3://warehouse/wh/
+      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
       CATALOG_S3_ENDPOINT: http://minio:9000
-      CATALOG_S3_ACCESS-KEY: minioadmin
-      CATALOG_S3_SECRET-KEY: minioadmin123
+      CATALOG_S3_PATH__STYLE__ACCESS: "true"
+      AWS_ACCESS_KEY_ID: admin
+      AWS_SECRET_ACCESS_KEY: password
+      AWS_REGION: us-east-1
     networks:
-      - retail-network
+      retail-network:
+        aliases:
+          - rest
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8181/v1/namespaces || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   # PostgreSQL
   postgres:
     image: postgres:15
+    hostname: postgres
     container_name: postgres
     ports:
       - "5432:5432"
@@ -124,21 +244,85 @@ services:
       POSTGRES_DB: retaildb
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./sql/postgres_seed.sql:/docker-entrypoint-initdb.d/seed.sql
+    networks:
+      - retail-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U retail"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MySQL (for OpenMetadata)
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: openmetadata
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin123
+    networks:
+      - retail-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Elasticsearch (for OpenMetadata)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    networks:
+      - retail-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
     networks:
       - retail-network
 
   # Trino
   trino:
-    image: trinodb/trino:408
+    image: trinodb/trino:448
     container_name: trino
     ports:
-      - "8080:8080"
+      - "8082:8080"
     volumes:
       - ./trino/etc:/etc/trino
     depends_on:
-      - iceberg-rest
-      - minio
-      - postgres
+      iceberg-rest:
+        condition: service_started
+      minio:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     networks:
       - retail-network
 
@@ -154,7 +338,8 @@ services:
       TRINO_HOST: trino
       TRINO_PORT: 8080
     depends_on:
-      - trino
+      trino:
+        condition: service_started
     networks:
       - retail-network
 
@@ -169,7 +354,8 @@ services:
     environment:
       GRAPHQL_API_URL: http://graphql-api:4000
     depends_on:
-      - graphql-api
+      graphql-api:
+        condition: service_started
     networks:
       - retail-network
 
@@ -187,7 +373,8 @@ services:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
     depends_on:
-      - trino
+      trino:
+        condition: service_started
     networks:
       - retail-network
 
@@ -199,26 +386,17 @@ services:
       - "8585:8585"
     environment:
       OPENMETADATA_AIRFLOW_HOST: http://openmetadata:8080
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: retail
-      DB_PASSWORD: retail123
-    networks:
-      - retail-network
-
-  # Hive Metastore
-  hive-metastore:
-    image: cloudera/hive:2.1.1
-    container_name: hive-metastore
-    ports:
-      - "9083:9083"
-    environment:
-      METASTORE_DB_HOST: postgres
-      METASTORE_DB_PORT: 5432
-      METASTORE_DB_USER: retail
-      METASTORE_DB_PASSWORD: retail123
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: admin
+      DB_PASSWORD: admin123
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_PORT: 9200
     depends_on:
-      - postgres
+      mysql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     networks:
       - retail-network
 
@@ -226,6 +404,7 @@ volumes:
   minio-data:
   postgres-data:
   grafana-data:
+  prometheus-data:
 
 networks:
   retail-network:
