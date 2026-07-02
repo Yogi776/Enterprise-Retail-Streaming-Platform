@@ -35,3 +35,10 @@ cubes:
       sql: >-
         CASE WHEN fraud_score > 0.7 THEN 1 ELSE 0 END
       type: sum
+  joins:
+    - name: orders
+      relationship: many_to_one
+      sql: "{fraud_signals.order_id} = {orders.order_id}"
+    - name: customers
+      relationship: many_to_one
+      sql: "{fraud_signals.customer_id} = {customers.customer_id}"

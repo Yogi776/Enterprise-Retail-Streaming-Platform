@@ -50,3 +50,13 @@ cubes:
     - name: avg_fraud_score
       sql: fraud_score
       type: avg
+  joins:
+    - name: orders
+      relationship: many_to_one
+      sql: "{orders.order_id} = {payments.order_id}"
+    - name: customers
+      relationship: many_to_one
+      sql: "{customers.customer_id} = {payments.customer_id}"
+    - name: fraud_signals
+      relationship: many_to_one
+      sql: "{fraud_signals.order_id} = {payments.order_id}"

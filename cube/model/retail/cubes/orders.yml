@@ -55,3 +55,16 @@ cubes:
     - name: avg_order_value
       sql: total_amount
       type: avg
+  joins:
+    - name: customers
+      relationship: many_to_one
+      sql: "{customers.customer_id} = {orders.customer_id}"
+    - name: payments
+      relationship: one_to_one
+      sql: "{payments.order_id} = {orders.order_id}"
+    - name: fraud_signals
+      relationship: many_to_one
+      sql: "{fraud_signals.order_id} = {orders.order_id}"
+    - name: delivery
+      relationship: one_to_one
+      sql: "{delivery.order_id} = {orders.order_id}"

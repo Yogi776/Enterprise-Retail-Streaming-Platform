@@ -50,3 +50,10 @@ cubes:
     - name: avg_orders
       sql: total_orders
       type: avg
+  joins:
+    - name: orders
+      relationship: one_to_many
+      sql: "{customers.customer_id} = {orders.customer_id}"
+    - name: payments
+      relationship: one_to_many
+      sql: "{customers.customer_id} = {payments.customer_id}"
