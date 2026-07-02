@@ -62,52 +62,52 @@ This platform transforms retail operations from **reactive** to **proactive** wi
 
 ```mermaid
 flowchart TB
-    subgraph Sources["📥 DATA SOURCES"]
-        POS["🏪 POS System<br/><small>Point of Sale</small>"]
-        WEB["🌐 E-commerce<br/><small>Online Store</small>"]
-        MOB["📱 Mobile App<br/><small>iOS/Android</small>"]
-        IOT["📡 IoT Devices<br/><small>Smart Shelf Sensors</small>"]
+    subgraph Sources["DATA SOURCES"]
+        POS["POS System<br/><small>Point of Sale</small>"]
+        WEB["E-commerce<br/><small>Online Store</small>"]
+        MOB["Mobile App<br/><small>iOS/Android</small>"]
+        IOT["IoT Devices<br/><small>Smart Shelf Sensors</small>"]
     end
 
-    subgraph Ingestion["⚡ STREAM INGESTION"]
-        KAFKA["� Apache Kafka<br/><small>Message Broker :9092</small>"]
-        KAFKA_UI["📊 Kafka UI<br/><small>Monitoring :8080</small>"]
+    subgraph Ingestion["STREAM INGESTION"]
+        KAFKA["Apache Kafka<br/><small>Message Broker :9092</small>"]
+        KAFKA_UI["Kafka UI<br/><small>Monitoring :8080</small>"]
     end
 
-    subgraph Processing["🔄 STREAM PROCESSING"]
-        FLINK["🔥 Apache Flink<br/><small>Real-time Analytics</small>"]
-        FLINK_UI["🔍 Flink Dashboard<br/><small>Job Manager :8083</small>"]
+    subgraph Processing["STREAM PROCESSING"]
+        FLINK["Apache Flink<br/><small>Real-time Analytics</small>"]
+        FLINK_UI["Flink Dashboard<br/><small>Job Manager :8083</small>"]
     end
 
-    subgraph Storage["💾 STORAGE LAYER"]
-        subgraph Lakehouse["🏠 Lakehouse"]
-            MINIO["🪣 MinIO<br/><small>S3 Store :9000</small>"]
-            ICEBERG["📋 Apache Iceberg<br/><small>Table Format</small>"]
+    subgraph Storage["STORAGE LAYER"]
+        subgraph Lakehouse["Lakehouse"]
+            MINIO["MinIO<br/><small>S3 Store :9000</small>"]
+            ICEBERG["Apache Iceberg<br/><small>Table Format</small>"]
         end
-        PG["🐘 PostgreSQL<br/><small>Reference Data :5432</small>"]
+        PG["PostgreSQL<br/><small>Reference Data :5432</small>"]
     end
 
-    subgraph Query["🔍 QUERY LAYER"]
-        TRINO["⚡ Trino<br/><small>SQL Engine :8080</small>"]
+    subgraph Query["QUERY LAYER"]
+        TRINO["Trino<br/><small>SQL Engine :8080</small>"]
     end
 
-    subgraph Serving["🌐 API LAYER"]
-        GQL["🔷 GraphQL API<br/><small>Data Gateway :4000</small>"]
+    subgraph Serving["API LAYER"]
+        GQL["GraphQL API<br/><small>Data Gateway :4000</small>"]
     end
 
-    subgraph UI["📊 USER INTERFACE"]
-        NEXT["⚛️ Next.js<br/><small>Dashboards :3000</small>"]
-        GRAFANA["📈 Grafana<br/><small>Monitoring :3030</small>"]
+    subgraph UI["USER INTERFACE"]
+        NEXT["Next.js<br/><small>Dashboards :3000</small>"]
+        GRAFANA["Grafana<br/><small>Monitoring :3030</small>"]
     end
 
-    subgraph Governance["🔐 GOVERNANCE"]
-        OM["📚 OpenMetadata<br/><small>Catalog :8585</small>"]
-        ELK["🔎 Elasticsearch<br/><small>Search :9200</small>"]
-        MYSQL["🗄️ MySQL<br/><small>Metadata :3306</small>"]
+    subgraph Governance["GOVERNANCE"]
+        OM["OpenMetadata<br/><small>Catalog :8585</small>"]
+        ELK["Elasticsearch<br/><small>Search :9200</small>"]
+        MYSQL["MySQL<br/><small>Metadata :3306</small>"]
     end
 
-    subgraph Observability["📡 OBSERVABILITY"]
-        PROM["📉 Prometheus<br/><small>Metrics :9090</small>"]
+    subgraph Observability["OBSERVABILITY"]
+        PROM["Prometheus<br/><small>Metrics :9090</small>"]
     end
 
     %% Data Flow
@@ -157,17 +157,18 @@ sequenceDiagram
     autonumber
     Title: Enterprise Retail Streaming Platform - Complete Data Flow
 
-    participant DG as 📦 Data Generator<br/>Python
-    participant KAFKA as 🏹 Kafka<br/>Message Broker
-    participant FLINK as 🔥 Flink<br/>Stream Processor
-    participant MINIO as 🪣 MinIO<br/>S3 Storage
-    participant PG as 🐘 PostgreSQL<br/>Reference Data
-    participant TRINO as ⚡ Trino<br/>Query Engine
-    participant GQL as 🔷 GraphQL<br/>API Gateway
-    participant UI as ⚛️ Next.js<br/>Dashboards
-    participant GRAFANA as 📈 Grafana<br/>Monitoring
-    participant PROM as 📉 Prometheus<br/>Metrics
-    participant OM as 📚 OpenMetadata<br/>Catalog
+    participant DG as Data Generator<br/>Python
+    participant KAFKA as Kafka<br/>Message Broker
+    participant FLINK as Flink<br/>Stream Processor
+    participant SPARK as Spark-Iceberg<br/>PySpark Streaming
+    participant MINIO as MinIO<br/>S3 Storage
+    participant PG as PostgreSQL<br/>Reference Data
+    participant TRINO as Trino<br/>Query Engine
+    participant GQL as GraphQL<br/>API Gateway
+    participant UI as Next.js<br/>Dashboards
+    participant GRAFANA as Grafana<br/>Monitoring
+    participant PROM as Prometheus<br/>Metrics
+    participant OM as OpenMetadata<br/>Catalog
 
     rect rgb(220, 240, 255)
         Note over DG,KAFKA: STAGE 1: DATA GENERATION
@@ -436,11 +437,11 @@ flowchart TB
 ```mermaid
 sequenceDiagram
     autonumber
-    participant UI as ⚛️ Next.js
-    participant GQL as 🔷 GraphQL API
-    participant CACHE as 📦 messageCache<br/>In-Memory
-    participant KAFKA as 🏹 Kafka
-    participant TRINO as ⚡ Trino
+    participant UI as Next.js
+    participant GQL as GraphQL API
+    participant CACHE as messageCache<br/>In-Memory
+    participant KAFKA as Kafka
+    participant TRINO as Trino
 
     rect rgb(230, 245, 255)
         Note over KAFKA,GQL: KAFKA CONSUMER (Background)
