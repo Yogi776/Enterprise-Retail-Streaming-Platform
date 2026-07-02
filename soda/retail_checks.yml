@@ -1,0 +1,217 @@
+# Soda Core Data Quality Checks for Retail Streaming Platform
+# Scans Iceberg tables via Trino
+
+dataset: trino_iceberg/retail/orders
+checks:
+  # Row count checks
+  - row_count > 0:
+      name: orders table has data
+
+  # Key identifier checks - no nulls
+  - missing_count(event_id) = 0:
+      name: all orders have event_id
+  - missing_count(order_id) = 0:
+      name: all orders have order_id
+  - missing_count(customer_id) = 0:
+      name: all orders have customer_id
+
+  # Data validity checks
+  - invalid_count(status):
+      name: status is never null
+      max_failed_checks: 1
+  - invalid_count(payment_method):
+      name: payment_method is never null
+      max_failed_checks: 1
+  - invalid_count(currency):
+      name: currency is never null
+      max_failed_checks: 1
+
+  # Numerical integrity
+  - min(total_amount) >= 0:
+      name: total_amount is never negative
+  - missing_count(total_amount) = 0:
+      name: all orders have total_amount
+
+  # Business rules
+  - distinct_count(status) >= 1:
+      name: at least one order status exists
+  - distinct_count(channel) >= 1:
+      name: at least one channel exists
+
+columns:
+  - name: event_id
+    checks:
+      - missing:
+          threshold:
+            metric: count
+            must_be_less_than: 1
+  - name: order_id
+    checks:
+      - missing:
+          threshold:
+            metric: count
+            must_be_less_than: 1
+  - name: total_amount
+    checks:
+      - missing:
+          threshold:
+            metric: count
+            must_be_less_than: 1
+      - min:
+          code: |
+            0 <= total_amount
+          name: total_amount non-negative
+  - name: status
+    checks:
+      - missing:
+          threshold:
+            metric: count
+            must_be_less_than: 1
+
+---
+
+dataset: trino_iceberg/retail/payments
+checks:
+  - row_count > 0:
+      name: payments table has data
+  - missing_count(event_id) = 0:
+      name: all payments have event_id
+  - missing_count(payment_id) = 0:
+      name: all payments have payment_id
+  - missing_count(order_id) = 0:
+      name: all payments have order_id
+  - min(amount) >= 0:
+      name: amount is never negative
+  - missing_count(amount) = 0:
+      name: all payments have amount
+  - invalid_count(payment_status):
+      name: payment_status is never null
+      max_failed_checks: 1
+
+columns:
+  - name: payment_id
+    checks:
+      - missing:
+          threshold:
+            metric: count
+            must_be_less_than: 1
+  - name: amount
+    checks:
+      - missing:
+          threshold:
+            metric: count
+            must_be_less_than: 1
+      - min:
+          code: |
+            0 <= amount
+          name: amount non-negative
+  - name: fraud_score
+    checks:
+      - missing:
+          threshold:
+            metric: percent
+            must_be_less_than: 50
+          name: fraud_score mostly present
+
+---
+
+dataset: trino_iceberg/retail/customer_profile
+checks:
+  - row_count > 0:
+      name: customer_profile table has data
+  - missing_count(event_id) = 0:
+      name: all profiles have event_id
+  - missing_count(customer_id) = 0:
+      name: all profiles have customer_id
+  - unique_count(customer_id) = row_count:
+      name: customer_id is unique (no duplicates)
+  - missing_count(email) = 0:
+      name: all profiles have email
+  - missing_count(loyalty_tier) = 0:
+      name: all profiles have loyalty_tier
+  - invalid_count(loyalty_tier):
+      name: loyalty_tier is never null
+      max_failed_checks: 1
+
+columns:
+  - name: customer_id
+    checks:
+      - missing:
+          threshold:
+            metric: count
+            must_be_less_than: 1
+      - unique:
+          name: customer_id is unique
+  - name: email
+    checks:
+      - missing:
+          threshold:
+            metric: count
+            must_be_less_than: 1
+  - name: loyalty_tier
+    checks:
+      - missing:
+          threshold:
+            metric: count
+            must_be_less_than: 1
+
+---
+
+dataset: trino_iceberg/retail/inventory
+checks:
+  - row_count > 0:
+      name: inventory table has data
+  - missing_count(event_id) = 0:
+      name: all inventory records have event_id
+  - missing_count(product_id) = 0:
+      name: all inventory records have product_id
+  - missing_count(quantity_on_hand) = 0:
+      name: all inventory records have quantity_on_hand
+  - min(quantity_on_hand) >= 0:
+      name: quantity_on_hand is never negative
+  - min(reorder_level) >= 0:
+      name: reorder_level is never negative
+
+columns:
+  - name: product_id
+    checks:
+      - missing:
+          threshold:
+            metric: count
+            must_be_less_than: 1
+  - name: quantity_on_hand
+    checks:
+      - missing:
+          threshold:
+            metric: count
+            must_be_less_than: 1
+      - min:
+          code: |
+            0 <= quantity_on_hand
+          name: quantity_on_hand non-negative
+
+---
+
+dataset: trino_iceberg/retail/fraud_signals
+checks:
+  - row_count > 0:
+      name: fraud_signals table has data
+  - missing_count(event_id) = 0:
+      name: all fraud signals have event_id
+  - missing_count(customer_id) = 0:
+      name: all fraud signals have customer_id
+  - min(fraud_score) >= 0:
+      name: fraud_score is never negative
+  - max(fraud_score) <= 1:
+      name: fraud_score never exceeds 1
+
+---
+
+dataset: trino_iceberg/retail/delivery
+checks:
+  - row_count > 0:
+      name: delivery table has data
+  - missing_count(event_id) = 0:
+      name: all deliveries have event_id
+  - missing_count(order_id) = 0:
+      name: all deliveries have order_id

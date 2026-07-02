@@ -13,6 +13,11 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - retail-network
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
@@ -20,7 +25,7 @@ services:
     container_name: kafka
     depends_on:
       zookeeper:
-        condition: service_healthy
+        condition: service_started
     ports:
       - "9092:9092"
       - "9101:9101"
@@ -361,7 +366,7 @@ services:
 
   # Grafana
   grafana:
-    image: grafana/grafana:10.2
+    image: grafana/grafana:latest
     container_name: grafana
     ports:
       - "3030:3000"
@@ -399,6 +404,23 @@ services:
         condition: service_healthy
     networks:
       - retail-network
+
+  # Data Quality Scanner
+  data-quality:
+    image: python:3.11-slim
+    container_name: data-quality
+    volumes:
+      - ./scripts:/scripts
+    environment:
+      PYTHONUNBUFFERED: "1"
+    command: >
+      bash -c "pip install trino -q && python /scripts/soda_scan.py"
+    depends_on:
+      trino:
+        condition: service_started
+    networks:
+      - retail-network
+    restart: "no"
 
 volumes:
   minio-data:
