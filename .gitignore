@@ -1,0 +1,55 @@
+# Environment and secrets
+.env
+*.env.local
+.env.production
+
+# Docker volumes and runtime data
+**/metastore_db/
+**/metastore_db.tmp/
+**/*.db
+**/*.sqlite
+**/data/
+**/logs/
+
+# MinIO / S3 data
+**/warehouse/
+
+# Checkpoints
+**/checkpoints/
+
+# Jupyter notebooks (runtime state)
+**/*.ipynb_checkpoints/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs
+**/dist/
+**/build/
+.next/
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
